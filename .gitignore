@@ -1,0 +1,17 @@
+# Python and local development environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Local secrets and generated experiment results
+.env
+outputs/
