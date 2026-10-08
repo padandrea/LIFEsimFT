@@ -3,10 +3,15 @@ import pytest
 
 from lifesimft import reference as ref
 from lifesimft.geometry import baselines, rotate_positions, rotation_angles
-from lifesimft.signal import planet_photon_rate
+from lifesimft.signal import planet_photon_rate, star_photon_rate
+from lifesimft.sources import blackbody_flux_density
 
 EARTH_AT_10_PC_RAD = 4.848e-7
 AMPLITUDES = np.ones(4)
+AMPLITUDE_REF = np.sqrt(
+    np.pi * (ref.APERTURE_DIAMETER_M / 2) ** 2 * ref.PHOTON_CONVERSION_EFFICIENCY / 4
+)
+STAR_ANGULAR_RADIUS = ref.STAR_RADIUS_M / ref.DISTANCE_M
 ATOL = 1e-10
 
 
@@ -67,3 +72,48 @@ def test_differential_is_odd(positions):
         )
 
     np.testing.assert_allclose(differential(theta), -differential(-theta), atol=ATOL)
+
+
+def star_rate(positions, phases, angular_radius):
+    return star_photon_rate(
+        flux_density=blackbody_flux_density(
+            ref.WAVELENGTH_M,
+            ref.STAR_TEMPERATURE_K,
+            ref.STAR_RADIUS_M,
+            ref.DISTANCE_M,
+        ),
+        amplitudes=np.full(4, AMPLITUDE_REF),
+        phases=phases,
+        baselines=baselines(positions),
+        angular_radius=angular_radius,
+        wavelength=ref.WAVELENGTH_M,
+        bandwidth=ref.BANDWIDTH_M,
+    )
+
+
+def test_point_star_is_nulled(positions):
+    n = star_rate(positions, ref.PHASE_LEFT_RAD, 0.0)
+    np.testing.assert_allclose(n, 0.0, atol=1e-6)
+
+
+def test_star_leakage_constant_and_equal_in_both_outputs(positions):
+    n_left = star_rate(positions, ref.PHASE_LEFT_RAD, STAR_ANGULAR_RADIUS)
+    n_right = star_rate(positions, ref.PHASE_RIGHT_RAD, STAR_ANGULAR_RADIUS)
+    np.testing.assert_allclose(n_left, n_left[0], rtol=1e-9)
+    np.testing.assert_allclose(n_left, n_right, rtol=1e-9)
+
+
+def test_star_leakage_matches_small_disk_formula(positions):
+    flux = blackbody_flux_density(
+        ref.WAVELENGTH_M, ref.STAR_TEMPERATURE_K, ref.STAR_RADIUS_M, ref.DISTANCE_M
+    )
+    nulling_baseline = 14.5
+    expected = (
+        2
+        * AMPLITUDE_REF**2
+        * ref.BANDWIDTH_M
+        * flux
+        * (np.pi * STAR_ANGULAR_RADIUS * nulling_baseline / ref.WAVELENGTH_M) ** 2
+    )
+    n = star_rate(positions, ref.PHASE_LEFT_RAD, STAR_ANGULAR_RADIUS)
+    assert n[0] == pytest.approx(expected, rel=1e-3)

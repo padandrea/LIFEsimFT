@@ -27,9 +27,14 @@ cos Δϑ_jk = 1). Noise will be photon noise only.
   n(t) = Δλ F_p Σ_jk A_j A_k cos(Δφ_jk + 2π/λ · x_jk(t)·θ_p), from Eq. B12 with
   Eqs. B13–B14 and B20.
 - Sign: Eq. B22 corresponds to cos(Δφ_jk − 2π/λ · x_jk·θ_p), i.e. θ_p → −θ_p
-  relative to B12. This package follows B12. Unresolved: which convention
-  InLIFEsim uses; check before comparing templates.
+  relative to B12. This package follows B12. InLIFEsim uses x_k − x_j and starts the planet 
+  at (−θ, 0); both flips cancel, and planet_response matches planet_photon_rate to 5·10⁻¹⁴ 
+  for the reference case (InLIFEsim commit 9505676)
 - Unresolved: amplitude normalization. The paper gives A_j = √(A_col η / N_col)
   (below Eq. B7); not yet checked against InLIFEsim `observatory.py`.
-- the planet is a 255 K blackbody as a development stand-in for the Alei et al. (2024) Earth spectrum;
+
+  ## Sources
+
+- the planet is a 255 K blackbody as a development stand-in for the Alei et al. (2024).
+ Earth spectrum;
 - the star is a uniform-disk blackbody (Eq. B24).

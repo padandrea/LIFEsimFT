@@ -2,7 +2,9 @@
 
 import numpy as np
 
+from lifesimft.sources import uniform_disk_visibility
 
+"""below we use the Citter-Zernike theorem"""
 def planet_photon_rate(
     flux_density: float,
     amplitudes: np.ndarray,
@@ -31,5 +33,37 @@ def planet_photon_rate(
     amplitude_product = amplitudes[:, np.newaxis] * amplitudes[np.newaxis, :]
     sum_over_pairs = np.sum(
         amplitude_product * np.cos(delta_phase + geometric_phase), axis=(1, 2)
+    )
+    return bandwidth * flux_density * sum_over_pairs
+
+
+def star_photon_rate(
+    flux_density: float,
+    amplitudes: np.ndarray,
+    phases: np.ndarray,
+    baselines: np.ndarray,
+    angular_radius: float,
+    wavelength: float,
+    bandwidth: float,
+) -> np.ndarray:
+    """Photon rate from a uniform-disk star centred on the optical axis (Eq. B25).
+
+    n(t) = bandwidth * flux_density
+           * sum_jk A_j A_k cos(phi_j - phi_k) V(|x_jk(t)|)
+
+    :param flux_density: stellar spectral photon flux density in ph s^-1 m^-2 m^-1
+    :param amplitudes: collector amplitude responses A_j in m, shape (n_collectors,)
+    :param phases: beam-combiner phase of each collector in rad, shape (n_collectors,)
+    :param baselines: x_jk in m, shape (n_t, n_collectors, n_collectors, 2)
+    :param angular_radius: angular radius of the stellar disk in rad
+    :param wavelength: wavelength in m
+    :param bandwidth: width of the wavelength bin in m
+    :return: photon rate in ph s^-1, shape (n_t,)
+    """
+    visibility = uniform_disk_visibility(baselines, wavelength, angular_radius)
+    delta_phase = phases[:, np.newaxis] - phases[np.newaxis, :]
+    amplitude_product = amplitudes[:, np.newaxis] * amplitudes[np.newaxis, :]
+    sum_over_pairs = np.sum(
+        amplitude_product * np.cos(delta_phase) * visibility, axis=(1, 2)
     )
     return bandwidth * flux_density * sum_over_pairs
