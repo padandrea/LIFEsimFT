@@ -1,10 +1,11 @@
-"""Planet photon rate in an interferometer output, Dannert et al. (2025), Eq. B12, B13, and B14."""
+"""Planet photon rate in an interferometer output, Dannert et al. (2025), Eq. B12, B13, and B14.
+
+   Each source's Fourier transform is evaluated at the baselines x_jk / lambda and
+   summed over collector pairs (van Cittert-Zernike theorem, Eq. B19).
+   """
 
 import numpy as np
-
 from lifesimft.sources import uniform_disk_visibility
-
-"""below we use the Citter-Zernike theorem"""
 
 
 def planet_photon_rate(
