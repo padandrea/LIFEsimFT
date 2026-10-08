@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Static Fourier-transform modeling for LIFE nulling interferometry"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["numpy>=1.26"]
 
 [project.optional-dependencies]
 dev = ["build>=1.2", "pytest>=8", "ruff>=0.6"]
