@@ -22,11 +22,10 @@ def rotate_positions(positions: np.ndarray, angles: np.ndarray) -> np.ndarray:
     :return: rotated positions in m, shape (n_t, n_collectors, 2)
     """
     c = np.cos(angles)[:, np.newaxis]
-    s = np.sin(angles)[:, np.newaxis]   
-    x = c*positions[:, 0] - s*positions[:, 1]
-    y = s*positions[:, 0] + c*positions[:, 1]
+    s = np.sin(angles)[:, np.newaxis]
+    x = c * positions[:, 0] - s * positions[:, 1]
+    y = s * positions[:, 0] + c * positions[:, 1]
     return np.stack([x, y], axis=-1)
-                                           
 
 
 def baselines(positions: np.ndarray) -> np.ndarray:
@@ -37,4 +36,3 @@ def baselines(positions: np.ndarray) -> np.ndarray:
         element [t, j, k] is x_j - x_k
     """
     return positions[:, :, np.newaxis, :] - positions[:, np.newaxis, :, :]
-
