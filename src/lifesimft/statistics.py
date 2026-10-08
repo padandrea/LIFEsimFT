@@ -29,6 +29,8 @@ def test_statistic(
     :param total_time: total integration time in s
     :return: T, dimensionless
     """
-    return np.sqrt(total_time) * np.sqrt(np.mean(differential_signal**2)) / np.sqrt(
-        mean_rate_left + mean_rate_right
-    )   
+    return (
+        np.sqrt(total_time)
+        * np.sqrt(np.mean(differential_signal**2))
+        / np.sqrt(mean_rate_left + mean_rate_right)
+    )

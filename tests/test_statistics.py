@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from lifesimft.statistics import planet_template, test_statistic as compute_t
+from lifesimft.statistics import planet_template
+from lifesimft.statistics import test_statistic as compute_t
 
 SIGNAL = np.sin(np.linspace(0, 6 * np.pi, 600, endpoint=False))
 

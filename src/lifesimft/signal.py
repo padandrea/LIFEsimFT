@@ -5,6 +5,8 @@ import numpy as np
 from lifesimft.sources import uniform_disk_visibility
 
 """below we use the Citter-Zernike theorem"""
+
+
 def planet_photon_rate(
     flux_density: float,
     amplitudes: np.ndarray,
