@@ -15,3 +15,6 @@ htmlcov/
 # Local secrets and generated experiment results
 .env
 outputs/
+
+# Editor settings
+.vscode/
