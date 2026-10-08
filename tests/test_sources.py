@@ -1,0 +1,50 @@
+import numpy as np
+import pytest
+from scipy.constants import au, c, h, k, sigma
+
+from lifesimft import reference as ref
+from lifesimft.sources import (
+    blackbody_flux_density,
+    planck_photon_radiance,
+    uniform_disk_visibility,
+)
+
+
+def test_planck_rayleigh_jeans_limit():
+    wavelength, temperature = 1e-2, 5778.0
+    expected = 2 * k * temperature / (h * wavelength**3)
+    assert planck_photon_radiance(wavelength, temperature) == pytest.approx(
+        expected, rel=1e-3
+    )
+
+
+def test_sun_gives_solar_constant():
+    wavelengths = np.logspace(-8, -3, 20000)
+    photon_flux = blackbody_flux_density(
+        wavelengths, ref.STAR_TEMPERATURE_K, ref.STAR_RADIUS_M, au
+    )
+    energy_flux = np.trapezoid(photon_flux * h * c / wavelengths, wavelengths)
+    expected = sigma * ref.STAR_TEMPERATURE_K**4 * (ref.STAR_RADIUS_M / au) ** 2
+    assert energy_flux == pytest.approx(expected, rel=1e-3)
+    assert energy_flux == pytest.approx(1361, rel=0.01)
+
+
+def test_visibility_is_one_at_zero_baseline():
+    assert uniform_disk_visibility(np.zeros((1, 2)), 10e-6, 1e-8)[0] == 1.0
+
+
+def test_visibility_small_argument_expansion():
+    baseline = np.array([[14.5, 0.0]])
+    theta = ref.STAR_RADIUS_M / ref.DISTANCE_M
+    x = 2 * np.pi * theta * 14.5 / ref.WAVELENGTH_M
+    assert uniform_disk_visibility(baseline, ref.WAVELENGTH_M, theta)[
+        0
+    ] == pytest.approx(1 - x**2 / 8, rel=1e-8)
+
+
+def test_visibility_first_null():
+    first_zero_of_j1 = 3.8317059702
+    wavelength, theta = 10e-6, 1e-8
+    length = first_zero_of_j1 * wavelength / (2 * np.pi * theta)
+    v = uniform_disk_visibility(np.array([[length, 0.0]]), wavelength, theta)
+    assert v[0] == pytest.approx(0.0, abs=1e-9)

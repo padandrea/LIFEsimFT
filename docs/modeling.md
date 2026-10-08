@@ -31,3 +31,5 @@ cos Δϑ_jk = 1). Noise will be photon noise only.
   InLIFEsim uses; check before comparing templates.
 - Unresolved: amplitude normalization. The paper gives A_j = √(A_col η / N_col)
   (below Eq. B7); not yet checked against InLIFEsim `observatory.py`.
+- the planet is a 255 K blackbody as a development stand-in for the Alei et al. (2024) Earth spectrum;
+- the star is a uniform-disk blackbody (Eq. B24).
