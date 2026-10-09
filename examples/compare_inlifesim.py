@@ -117,35 +117,35 @@ def lifesimft_rates(wavelength: float, bandwidth: float) -> dict[str, float]:
     b = baselines(rotate_positions(ref.COLLECTOR_POSITIONS_M, np.zeros(1)))
     star = star_photon_rate(
         flux_density=blackbody_flux_density(
-            ref.WAVELENGTH_M, ref.STAR_TEMPERATURE_K, ref.STAR_RADIUS_M, ref.DISTANCE_M
+            wavelength, ref.STAR_TEMPERATURE_K, ref.STAR_RADIUS_M, ref.DISTANCE_M
         ),
         angular_radius=ref.STAR_RADIUS_M / ref.DISTANCE_M,
         amplitudes=AMPLITUDES,
         phases=ref.PHASE_LEFT_RAD,
         baselines=b,
-        wavelength=ref.WAVELENGTH_M,
-        bandwidth=ref.BANDWIDTH_M,
+        wavelength=wavelength,
+        bandwidth=bandwidth,
     )[0]
     local_zodi = local_zodi_photon_rate(
-        radiance=local_zodi_radiance(ref.WAVELENGTH_M, ref.ECLIPTIC_LATITUDE_RAD),
+        radiance=local_zodi_radiance(wavelength, ref.ECLIPTIC_LATITUDE_RAD),
         amplitudes=AMPLITUDES,
-        wavelength=ref.WAVELENGTH_M,
+        wavelength=wavelength,
         aperture_diameter=ref.APERTURE_DIAMETER_M,
-        bandwidth=ref.BANDWIDTH_M,
+        bandwidth=bandwidth,
     )
     exozodi = exozodi_photon_rate(
         zodi_level=ref.ZODI_LEVEL,
         amplitudes=AMPLITUDES,
         phases=ref.PHASE_LEFT_RAD,
         baselines=b,
-        wavelength=ref.WAVELENGTH_M,
-        bandwidth=ref.BANDWIDTH_M,
+        wavelength=wavelength,
+        bandwidth=bandwidth,
         distance=ref.DISTANCE_M,
         luminosity=ref.STAR_LUMINOSITY_LSUN,
         aperture_diameter=ref.APERTURE_DIAMETER_M,
     )[0]
     planet = blackbody_flux_density(
-        ref.WAVELENGTH_M,
+        wavelength,
         ref.PLANET_TEMPERATURE_K,
         ref.PLANET_RADIUS_M,
         ref.DISTANCE_M,
