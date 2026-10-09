@@ -35,8 +35,8 @@ cos Δϑ_jk = 1). Noise will be photon noise only.
 
   ## Sources
 
-- the planet is a 285 K blackbody, following Dannert et al. (2022) Table 1 (the InLIFEsim
-  demo uses `temp_planet=265`); still a stand-in for the Alei et al. (2024) Earth spectrum
+- the planet is a 254 K blackbody (equilibrium temperature), as in the InLIFEsim paper
+  notebooks (`temp_p = 254`); still a stand-in for the Alei et al. (2024) Earth spectrum
   used in Dannert et al. (2025).
 - the star is a uniform-disk blackbody (Eq. B24).
 
@@ -67,3 +67,17 @@ cos Δϑ_jk = 1). Noise will be photon noise only.
   correcting for this factor, LIFEsimFT agrees with InLIFEsim to 0.1 % in the
   leakage rate. To be clarified with Felix Dannert whether this is intentional.
 - Reference case at 10 µm, z = 1: 6.40 ph s⁻¹ per output (InLIFEsim: 2.04).
+
+
+## Spectral bins and total test statistic
+
+- Band 4–18.5 µm with constant spectral resolution R = λ/Δλ = 33.3, taken from
+  Table 1 (0.3 µm at 10 µm); geometric bin edges e_(k+1) = e_k (1 + 1/R), 52 bins.
+  The paper does not state the binning behind Fig. 8; to be confirmed.
+- Total test statistic as root sum of squares over bins, T = √(Σ T_i²), as in
+  Dannert et al. (2025) Fig. 8.
+- Noise curves agree with InLIFEsim in all 52 bins up to constants (star 1.0033,
+  local zodi 1.0000, planet flux 1.0024, exozodi 3.13–3.14 from its normalization).
+- Reference case with a 254 K blackbody planet: S/N = 6.85 at 10.15 µm, total 42.2;
+  with InLIFEsim's exozodi normalization 7.42 and 45.1 (paper: 46.6 with the
+  Alei et al. 2024 spectrum).
