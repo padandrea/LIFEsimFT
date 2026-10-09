@@ -1,11 +1,32 @@
-"""Planet photon rate in an interferometer output, Dannert et al. (2025), Eq. B12, B13, and B14.
+"""Photon rates in an interferometer output, Dannert et al. (2025), Eq. B12-B14 and B19.
 
 Each source's Fourier transform is evaluated at the baselines x_jk / lambda and
 summed over collector pairs (van Cittert-Zernike theorem, Eq. B19).
 """
 
 import numpy as np
-from lifesimft.sources import uniform_disk_visibility
+from lifesimft.sources import point_source_visibility, uniform_disk_visibility
+
+
+def pair_sum(
+    amplitudes: np.ndarray, phases: np.ndarray, visibility: np.ndarray
+) -> np.ndarray:
+    """Interferometric pair sum of Eq. B19 for a source with known visibility.
+
+    sum_jk A_j A_k Re[exp(i (phi_j - phi_k)) V(x_jk)]
+
+    :param amplitudes: collector amplitude responses A_j in m, shape (n_collectors,)
+    :param phases: beam-combiner phase of each collector in rad, shape (n_collectors,)
+    :param visibility: source Fourier transform at the baselines, real or complex,
+        shape (n_t, n_collectors, n_collectors)
+    :return: pair sum in m^2, shape (n_t,)
+    """
+    delta_phase = phases[:, np.newaxis] - phases[np.newaxis, :]
+    amplitude_product = amplitudes[:, np.newaxis] * amplitudes[np.newaxis, :]
+    return np.sum(
+        amplitude_product * np.real(np.exp(1j * delta_phase) * visibility),
+        axis=(1, 2),
+    )
 
 
 def planet_photon_rate(
@@ -31,13 +52,8 @@ def planet_photon_rate(
     :param bandwidth: width of the wavelength bin in m
     :return: photon rate in ph s^-1, shape (n_t,)
     """
-    geometric_phase = 2 * np.pi / wavelength * (baselines @ planet_position)
-    delta_phase = phases[:, np.newaxis] - phases[np.newaxis, :]
-    amplitude_product = amplitudes[:, np.newaxis] * amplitudes[np.newaxis, :]
-    sum_over_pairs = np.sum(
-        amplitude_product * np.cos(delta_phase + geometric_phase), axis=(1, 2)
-    )
-    return bandwidth * flux_density * sum_over_pairs
+    visibility = point_source_visibility(baselines, wavelength, planet_position)
+    return bandwidth * flux_density * pair_sum(amplitudes, phases, visibility)
 
 
 def star_photon_rate(
@@ -64,12 +80,7 @@ def star_photon_rate(
     :return: photon rate in ph s^-1, shape (n_t,)
     """
     visibility = uniform_disk_visibility(baselines, wavelength, angular_radius)
-    delta_phase = phases[:, np.newaxis] - phases[np.newaxis, :]
-    amplitude_product = amplitudes[:, np.newaxis] * amplitudes[np.newaxis, :]
-    sum_over_pairs = np.sum(
-        amplitude_product * np.cos(delta_phase) * visibility, axis=(1, 2)
-    )
-    return bandwidth * flux_density * sum_over_pairs
+    return bandwidth * flux_density * pair_sum(amplitudes, phases, visibility)
 
 
 def field_of_view_solid_angle(wavelength: float, aperture_diameter: float) -> float:

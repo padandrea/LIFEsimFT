@@ -36,6 +36,25 @@ def blackbody_flux_density(
     )
 
 
+def point_source_visibility(
+    baselines: np.ndarray, wavelength: float, position: np.ndarray
+) -> np.ndarray:
+    """Fourier transform of a unit point source at angular position theta.
+
+    V(x_jk) = exp(i 2 pi / lambda * x_jk . theta)
+
+    A pure phase with |V| = 1: an unresolved source has the same amplitude at every
+    baseline, and its offset from the optical axis only shifts the phase. The sign
+    follows Eq. B12 with x_jk = x_j - x_k.
+
+    :param baselines: baseline vectors x_jk in m, shape (..., 2)
+    :param wavelength: in m
+    :param position: angular offset theta from the optical axis in rad, shape (2,)
+    :return: complex visibility, dimensionless, shape (...)
+    """
+    return np.exp(1j * 2 * np.pi / wavelength * (baselines @ position))
+
+
 def uniform_disk_visibility(
     baselines: np.ndarray, wavelength: float, angular_radius: float
 ) -> np.ndarray:

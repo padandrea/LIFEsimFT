@@ -8,6 +8,7 @@ from lifesimft.sources import (
     exozodi_radiance,
     local_zodi_radiance,
     planck_photon_radiance,
+    point_source_visibility,
     uniform_disk_visibility,
 )
 
@@ -79,3 +80,16 @@ def test_exozodi_scales_linearly_with_zodi_level():
     one = exozodi_radiance(theta, ref.WAVELENGTH_M, 1.0, ref.DISTANCE_M, 1.0)
     three = exozodi_radiance(theta, ref.WAVELENGTH_M, 3.0, ref.DISTANCE_M, 1.0)
     np.testing.assert_allclose(three, 3 * one)
+
+
+def test_point_source_visibility_is_a_pure_phase():
+    baselines = np.array([[14.5, 0.0], [0.0, 87.0], [-7.3, 40.1]])
+    theta = np.array([4.8e-7, -1.2e-7])
+    v = point_source_visibility(baselines, ref.WAVELENGTH_M, theta)
+    np.testing.assert_allclose(np.abs(v), 1.0)
+
+
+def test_on_axis_point_source_has_unit_visibility():
+    baselines = np.array([[14.5, 0.0], [0.0, 87.0]])
+    v = point_source_visibility(baselines, ref.WAVELENGTH_M, np.zeros(2))
+    np.testing.assert_allclose(v, 1.0)
