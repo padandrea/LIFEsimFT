@@ -26,6 +26,7 @@ from lifesimft.sources import (
     exozodi_visibility,
     local_zodi_radiance,
 )
+from lifesimft.spectral import wavelength_bins
 
 WL_BINS = np.array([ref.WAVELENGTH_M])
 WL_WIDTHS = np.array([ref.BANDWIDTH_M])
@@ -49,9 +50,11 @@ def inlifesim_baselines() -> np.ndarray:
     return np.array((np.subtract.outer(x, x).T, np.subtract.outer(y, y).T))
 
 
-def inlifesim_exozodi_map(bl: np.ndarray) -> np.ndarray:
-    """Exozodi Fourier transform from InLIFEsim, shape (1, n_collectors, n_collectors)."""
-    hfov = WL_BINS / (2 * ref.APERTURE_DIAMETER_M)
+def inlifesim_exozodi_map(
+    bl: np.ndarray, wl_bins: np.ndarray, wl_widths: np.ndarray
+) -> np.ndarray:
+    """Exozodi Fourier transform from InLIFEsim, shape (n_bins, n_collectors, n_collectors)."""
+    hfov = wl_bins / (2 * ref.APERTURE_DIAMETER_M)
     hfov_mas = hfov * 3600000.0 * 180.0 / np.pi
     rad_pix = 2 * hfov / IMAGE_SIZE
     au_pix = 2 * hfov_mas / IMAGE_SIZE / 1e3 * DISTANCE_PC
@@ -59,8 +62,8 @@ def inlifesim_exozodi_map(bl: np.ndarray) -> np.ndarray:
     radius_map = np.hypot(x_map - (IMAGE_SIZE - 1) / 2, x_map.T - (IMAGE_SIZE - 1) / 2)
     r_au = radius_map[np.newaxis] * au_pix[:, np.newaxis, np.newaxis]
     return create_exozodi(
-        WL_BINS,
-        WL_WIDTHS,
+        wl_bins,
+        wl_widths,
         1.0,
         ref.ZODI_LEVEL,
         r_au,
@@ -73,15 +76,17 @@ def inlifesim_exozodi_map(bl: np.ndarray) -> np.ndarray:
     )
 
 
-def inlifesim_rates() -> dict[str, float]:
-    """InLIFEsim photon rates per output in ph s^-1 and planet flux density."""
+def inlifesim_rates(
+    wl_bins: np.ndarray, wl_widths: np.ndarray
+) -> dict[str, np.ndarray]:
+    """InLIFEsim photon rates per output in ph s^-1 and planet flux density, per bin."""
     bl = inlifesim_baselines()
     phi = ref.PHASE_LEFT_RAD
     delta = np.cos(phi[:, np.newaxis] - phi[np.newaxis, :])
     weights = AMPLITUDES[:, np.newaxis] * AMPLITUDES[np.newaxis, :] * delta
     b_star = create_star(
-        WL_BINS,
-        WL_WIDTHS,
+        wl_bins,
+        wl_widths,
         ref.STAR_TEMPERATURE_K,
         1.0,
         DISTANCE_PC,
@@ -89,21 +94,26 @@ def inlifesim_rates() -> dict[str, float]:
         ref.COLLECTOR_POSITIONS_M,
         4,
     )[1]
-    flux_lz = create_localzodi(WL_BINS, WL_WIDTHS, lat=ref.ECLIPTIC_LATITUDE_RAD)
-    omega = np.pi * (WL_BINS / (2 * ref.APERTURE_DIAMETER_M)) ** 2
+    flux_lz = create_localzodi(wl_bins, wl_widths, lat=ref.ECLIPTIC_LATITUDE_RAD)
+    omega = np.pi * (wl_bins / (2 * ref.APERTURE_DIAMETER_M)) ** 2
     flux_planet = create_planet(
-        WL_BINS, WL_WIDTHS, ref.PLANET_TEMPERATURE_K, 1.0, DISTANCE_PC
+        wl_bins, wl_widths, ref.PLANET_TEMPERATURE_K, 1.0, DISTANCE_PC
     )
+    b_ez = inlifesim_exozodi_map(bl, wl_bins, wl_widths)
     return {
-        "star leakage": float(np.sum(weights * b_star[0])),
-        "local zodi": float(flux_lz[0] * omega[0] * np.sum(AMPLITUDES**2)),
-        "exozodi": float(np.sum(weights * inlifesim_exozodi_map(bl)[0])),
-        "planet flux density": float(flux_planet[0] / WL_WIDTHS[0]),
+        "star leakage": np.sum(weights * b_star, axis=(1, 2)),
+        "local zodi": flux_lz * omega * np.sum(AMPLITUDES**2),
+        "exozodi": np.sum(weights * b_ez, axis=(1, 2)),
+        "planet flux density": flux_planet / wl_widths,
     }
 
 
-def lifesimft_rates() -> dict[str, float]:
-    """LIFEsimFT photon rates per output in ph s^-1 and planet flux density."""
+def lifesimft_rates(wavelength: float, bandwidth: float) -> dict[str, float]:
+    """LIFEsimFT photon rates per output in ph s^-1 and planet flux density.
+
+    :param wavelength: bin centre in m
+    :param bandwidth: bin width in m
+    """
     b = baselines(rotate_positions(ref.COLLECTOR_POSITIONS_M, np.zeros(1)))
     star = star_photon_rate(
         flux_density=blackbody_flux_density(
@@ -160,7 +170,11 @@ def time_exozodi(n_repeats: int = 5) -> None:
     lengths = np.hypot(bl[0], bl[1])
     max_angle = ref.WAVELENGTH_M / (2 * ref.APERTURE_DIAMETER_M)
     t_inlifesim = min(
-        timeit.repeat(lambda: inlifesim_exozodi_map(bl), number=1, repeat=n_repeats)
+        timeit.repeat(
+            lambda: inlifesim_exozodi_map(bl, WL_BINS, WL_WIDTHS),
+            number=1,
+            repeat=n_repeats,
+        )
     )
     t_lifesimft = min(
         timeit.repeat(
@@ -181,16 +195,33 @@ def time_exozodi(n_repeats: int = 5) -> None:
     print(f"speed-up: {t_inlifesim / t_lifesimft:.0f}x")
 
 
+def compare_band() -> None:
+    """Ratio LIFEsimFT / InLIFEsim per quantity over all bins of the reference band."""
+    centers, widths = wavelength_bins(
+        ref.WAVELENGTH_MIN_M, ref.WAVELENGTH_MAX_M, ref.SPECTRAL_RESOLUTION
+    )
+    ours = [lifesimft_rates(wl, dwl) for wl, dwl in zip(centers, widths)]
+    theirs = inlifesim_rates(centers, widths)
+    print(f"{'quantity':<22}{'min ratio':>12}{'max ratio':>12}   ({centers.size} bins)")
+    for key in theirs:
+        ratio = np.array([row[key] for row in ours]) / theirs[key]
+        print(f"{key:<22}{ratio.min():>12.4f}{ratio.max():>12.4f}")
+
+
 def main() -> None:
-    ours = lifesimft_rates()
+    ours = lifesimft_rates(ref.WAVELENGTH_M, ref.BANDWIDTH_M)
     with np.errstate(divide="ignore", invalid="ignore"):
-        theirs = inlifesim_rates()
+        theirs = {
+            k: float(v[0]) for k, v in inlifesim_rates(WL_BINS, WL_WIDTHS).items()
+        }
     print(f"{'quantity':<22}{'LIFEsimFT':>14}{'InLIFEsim':>14}{'ratio':>10}")
     for key in ours:
         ratio = ours[key] / theirs[key]
         print(f"{key:<22}{ours[key]:>14.4g}{theirs[key]:>14.4g}{ratio:>10.4f}")
     print()
     with np.errstate(divide="ignore", invalid="ignore"):
+        compare_band()
+        print()
         time_exozodi()
 
 
