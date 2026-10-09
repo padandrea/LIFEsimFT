@@ -1,7 +1,7 @@
 """Photon fluxes and visibilities of astrophysical sources, Dannert et al. (2025), App. B.2."""
 
 import numpy as np
-from scipy.constants import c, h, k
+from scipy.constants import au, c, h, k
 from scipy.special import j1
 
 
@@ -83,3 +83,41 @@ def local_zodi_radiance(
         / (sin_b**2 + (0.6 * (wavelength / 11e-6) ** -0.4 * cos_b) ** 2)
     )
     return tau * spectrum * geometry
+
+
+def exozodi_radiance(
+    angular_separation: np.ndarray,
+    wavelength: float,
+    zodi_level: float,
+    distance: float,
+    luminosity: float,
+) -> np.ndarray:
+    """Spectral photon radiance of a face-on exozodiacal disk (Kennedy et al. 2015).
+
+    I(r) = Sigma(r) B(lambda, T(r)),
+    T(r) = 278.3 K L^(1/4) (r / au)^(-1/2)                      (Eq. 2),
+    Sigma(r) = z Sigma_0 (r / r_0)^(-alpha), r_0 = sqrt(L) au   (Eq. 3),
+    with Sigma_0 = 7.12e-8, alpha = 0.34, and zero outside the radii where
+    T = 1500 K (sublimation) and T = 88 K.
+
+    :param angular_separation: angle from the star in rad, any shape
+    :param wavelength: in m
+    :param zodi_level: number of zodis z, dimensionless
+    :param distance: distance to the star in m
+    :param luminosity: stellar luminosity in solar luminosities
+    :return: photon radiance in ph s^-1 m^-2 m^-1 sr^-1, same shape as
+        angular_separation
+    """
+    sigma_zero = 7.12e-8
+    alpha = 0.34
+    r_au = np.asarray(angular_separation) * distance / au
+    r_0 = np.sqrt(luminosity)
+    r_in = (278.3 / 1500.0) ** 2 * r_0
+    r_out = (278.3 / 88.0) ** 2 * r_0
+    inside = (r_au >= r_in) & (r_au <= r_out)
+    r_safe = np.where(inside, r_au, r_0)
+    temperature = 278.3 * luminosity**0.25 / np.sqrt(r_safe)
+    sigma = zodi_level * sigma_zero * (r_safe / r_0) ** -alpha
+    return np.where(
+        inside, sigma * planck_photon_radiance(wavelength, temperature), 0.0
+    )

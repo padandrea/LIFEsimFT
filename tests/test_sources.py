@@ -5,6 +5,7 @@ from scipy.constants import au, c, h, k, sigma
 from lifesimft import reference as ref
 from lifesimft.sources import (
     blackbody_flux_density,
+    exozodi_radiance,
     local_zodi_radiance,
     planck_photon_radiance,
     uniform_disk_visibility,
@@ -58,3 +59,23 @@ def test_local_zodi_at_ecliptic_pole():
     ) ** 2 * planck_photon_radiance(wavelength, 5777.0)
     expected = 4e-8 * spectrum * np.sqrt(2)
     assert local_zodi_radiance(wavelength, np.pi / 2) == pytest.approx(expected)
+
+
+def test_exozodi_at_reference_radius():
+    theta = au / ref.DISTANCE_M
+    expected = 7.12e-8 * planck_photon_radiance(ref.WAVELENGTH_M, 278.3)
+    radiance = exozodi_radiance(theta, ref.WAVELENGTH_M, 1.0, ref.DISTANCE_M, 1.0)
+    assert radiance == pytest.approx(expected)
+
+
+def test_exozodi_is_zero_outside_the_disk():
+    theta = np.array([0.01, 20.0]) * au / ref.DISTANCE_M
+    radiance = exozodi_radiance(theta, ref.WAVELENGTH_M, 1.0, ref.DISTANCE_M, 1.0)
+    np.testing.assert_array_equal(radiance, 0.0)
+
+
+def test_exozodi_scales_linearly_with_zodi_level():
+    theta = np.linspace(0.1, 5.0, 50) * au / ref.DISTANCE_M
+    one = exozodi_radiance(theta, ref.WAVELENGTH_M, 1.0, ref.DISTANCE_M, 1.0)
+    three = exozodi_radiance(theta, ref.WAVELENGTH_M, 3.0, ref.DISTANCE_M, 1.0)
+    np.testing.assert_allclose(three, 3 * one)

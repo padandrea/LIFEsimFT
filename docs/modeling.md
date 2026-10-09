@@ -35,8 +35,8 @@ cos Δϑ_jk = 1). Noise will be photon noise only.
 
   ## Sources
 
-- the planet is a 265 K blackbody, chosen to match the InLIFEsim demo
-  (`temp_planet=265`); still a stand-in for the Alei et al. (2024) Earth spectrum
+- the planet is a 285 K blackbody, following Dannert et al. (2022) Table 1 (the InLIFEsim
+  demo uses `temp_planet=265`); still a stand-in for the Alei et al. (2024) Earth spectrum
   used in Dannert et al. (2025).
 - the star is a uniform-disk blackbody (Eq. B24).
 
@@ -44,9 +44,10 @@ cos Δϑ_jk = 1). Noise will be photon noise only.
 
 - Radiance from the empirical model of Dannert et al. (2022), as implemented in
   InLIFEsim `create_localzodi`; agrees to 7·10⁻⁶.
-- Ecliptic longitude fixed at 135° (InLIFEsim default). Ecliptic latitude 0.79 rad
-  from the InLIFEsim demo; Table 1 gives none, value behind Table 2 to be confirmed.
+- Ecliptic coordinates λ_rel = 135°, β = 45° from Dannert et al. (2022) Table 1
+  (InLIFEsim demo: 0.79 rad). Dannert et al. (2025) Table 1 gives none; the value
+  behind its Table 2 is still to be confirmed.
 - Uniform over the single-mode field of view Ω = π(λ/2D)², so only the j = k terms
   of Eq. B19 survive: n = Δλ I Ω Σ_j A_j². Constant in time and equal in both
   outputs; cancels in n_L − n_R and enters T only as photon noise.
-- Reference case at 10 µm: 10.06 ph s⁻¹ per output; T drops from 12.43 to 9.38 (×1.33).
+- Reference case at 10 µm: 10.08 ph s⁻¹ per output; T drops from 18.22 to 13.75 (×1.33).

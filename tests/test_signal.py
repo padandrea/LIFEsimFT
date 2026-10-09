@@ -125,7 +125,7 @@ def test_star_leakage_matches_small_disk_formula(positions):
 
 def test_local_zodi_rate_matches_inlifesim():
     rate = local_zodi_photon_rate(
-        radiance=local_zodi_radiance(ref.WAVELENGTH_M, ref.ECLIPTIC_LATITUDE_RAD),
+        radiance=local_zodi_radiance(ref.WAVELENGTH_M, 0.79),
         amplitudes=np.full(4, AMPLITUDE_REF),
         wavelength=ref.WAVELENGTH_M,
         aperture_diameter=ref.APERTURE_DIAMETER_M,
