@@ -4,6 +4,8 @@ Requires InLIFEsim (https://github.com/fdannert/InLIFEsim, commit 9505676),
 installed with: pip install -e ../InLIFEsim
 """
 
+import timeit
+
 import numpy as np
 from inlifesim.sources import (
     create_exozodi,
@@ -19,7 +21,11 @@ from lifesimft.signal import (
     local_zodi_photon_rate,
     star_photon_rate,
 )
-from lifesimft.sources import blackbody_flux_density, local_zodi_radiance
+from lifesimft.sources import (
+    blackbody_flux_density,
+    exozodi_visibility,
+    local_zodi_radiance,
+)
 
 WL_BINS = np.array([ref.WAVELENGTH_M])
 WL_WIDTHS = np.array([ref.BANDWIDTH_M])
@@ -142,6 +148,39 @@ def lifesimft_rates() -> dict[str, float]:
     }
 
 
+def time_exozodi(n_repeats: int = 5) -> None:
+    """Runtime of the exozodi Fourier transform at 10 um, InLIFEsim vs LIFEsimFT.
+
+    InLIFEsim sums a 2D pixel map; LIFEsimFT integrates the 1D Hankel transform.
+    The fastest of n_repeats runs is reported.
+
+    :param n_repeats: number of timed runs per code
+    """
+    bl = inlifesim_baselines()
+    lengths = np.hypot(bl[0], bl[1])
+    max_angle = ref.WAVELENGTH_M / (2 * ref.APERTURE_DIAMETER_M)
+    t_inlifesim = min(
+        timeit.repeat(lambda: inlifesim_exozodi_map(bl), number=1, repeat=n_repeats)
+    )
+    t_lifesimft = min(
+        timeit.repeat(
+            lambda: exozodi_visibility(
+                lengths,
+                ref.WAVELENGTH_M,
+                ref.ZODI_LEVEL,
+                ref.DISTANCE_M,
+                ref.STAR_LUMINOSITY_LSUN,
+                max_angle,
+            ),
+            number=1,
+            repeat=n_repeats,
+        )
+    )
+    print(f"exozodi transform, InLIFEsim ({IMAGE_SIZE} px): {t_inlifesim * 1e3:.1f} ms")
+    print(f"exozodi transform, LIFEsimFT (Hankel):  {t_lifesimft * 1e3:.1f} ms")
+    print(f"speed-up: {t_inlifesim / t_lifesimft:.0f}x")
+
+
 def main() -> None:
     ours = lifesimft_rates()
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -150,6 +189,9 @@ def main() -> None:
     for key in ours:
         ratio = ours[key] / theirs[key]
         print(f"{key:<22}{ours[key]:>14.4g}{theirs[key]:>14.4g}{ratio:>10.4f}")
+    print()
+    with np.errstate(divide="ignore", invalid="ignore"):
+        time_exozodi()
 
 
 if __name__ == "__main__":
