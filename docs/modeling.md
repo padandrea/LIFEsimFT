@@ -51,3 +51,20 @@ cos Δϑ_jk = 1). Noise will be photon noise only.
   of Eq. B19 survive: n = Δλ I Ω Σ_j A_j². Constant in time and equal in both
   outputs; cancels in n_L − n_R and enters T only as photon noise.
 - Reference case at 10 µm: 10.08 ph s⁻¹ per output; T drops from 18.22 to 13.75 (×1.33).
+
+
+## Exozodiacal dust
+
+- Face-on disk following Kennedy et al. (2015): T(r) = 278.3 K L^¼ (r/au)^−½,
+  Σ(r) = z Σ₀ (r/r₀)^−0.34 with Σ₀ = 7.12·10⁻⁸ and r₀ = √L au; zero inside the
+  1500 K sublimation radius and outside the 88 K radius.
+- Zodi level z = 1, following Dannert et al. (2025) Table 1 (Dannert et al. 2022 uses z = 3).
+- Integrated out to the field of view λ/2D, as in InLIFEsim.
+- Radially symmetric, so its Fourier transform is the Hankel transform
+  Ĩ(q) = ∫ I(θ) J₀(2π q θ) 2πθ dθ with q = |x_jk|/λ. It depends only on baseline
+  lengths, so the leakage is constant under rotation and equal in both outputs.
+- InLIFEsim `create_exozodi` normalizes Σ to the inner radius, (r/r_in)^−α instead
+  of (r/r₀)^−α, which makes its disk fainter by (r_in/r₀)^0.34 ≈ 1/3.14. After
+  correcting for this factor, LIFEsimFT agrees with InLIFEsim to 0.1 % in the
+  leakage rate. To be clarified with Felix Dannert whether this is intentional.
+- Reference case at 10 µm, z = 1: 6.40 ph s⁻¹ per output (InLIFEsim: 2.04).

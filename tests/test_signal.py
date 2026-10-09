@@ -4,6 +4,7 @@ import pytest
 from lifesimft import reference as ref
 from lifesimft.geometry import baselines, rotate_positions, rotation_angles
 from lifesimft.signal import (
+    exozodi_photon_rate,
     local_zodi_photon_rate,
     planet_photon_rate,
     star_photon_rate,
@@ -132,3 +133,38 @@ def test_local_zodi_rate_matches_inlifesim():
         bandwidth=ref.BANDWIDTH_M,
     )
     assert rate == pytest.approx(10.061779016, rel=1e-4)
+
+
+def exozodi_rate(positions, phases, zodi_level=1.0):
+    return exozodi_photon_rate(
+        zodi_level=zodi_level,
+        amplitudes=np.full(4, AMPLITUDE_REF),
+        phases=phases,
+        baselines=baselines(positions),
+        wavelength=ref.WAVELENGTH_M,
+        bandwidth=ref.BANDWIDTH_M,
+        distance=ref.DISTANCE_M,
+        luminosity=1.0,
+        aperture_diameter=ref.APERTURE_DIAMETER_M,
+    )
+
+
+def test_exozodi_rate_constant_and_equal_in_both_outputs(positions):
+    left = exozodi_rate(positions, ref.PHASE_LEFT_RAD)
+    right = exozodi_rate(positions, ref.PHASE_RIGHT_RAD)
+    assert left.shape == (ref.N_SAMPLES,)
+    np.testing.assert_allclose(left, left[0])
+    np.testing.assert_allclose(right, left)
+
+
+def test_exozodi_rate_matches_inlifesim_with_kennedy_normalization(positions):
+    inlifesim = 2.0375742
+    kennedy_over_inlifesim = 0.034422617777777775**-0.34 * 7.12e-8 / 7.11889e-8
+    rate = exozodi_rate(positions, ref.PHASE_LEFT_RAD)
+    assert rate[0] == pytest.approx(kennedy_over_inlifesim * inlifesim, rel=0.01)
+
+
+def test_exozodi_rate_scales_linearly_with_zodi_level(positions):
+    one = exozodi_rate(positions, ref.PHASE_LEFT_RAD, 1.0)
+    three = exozodi_rate(positions, ref.PHASE_LEFT_RAD, 3.0)
+    np.testing.assert_allclose(three, 3 * one)

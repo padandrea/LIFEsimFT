@@ -6,7 +6,11 @@ summed over collector pairs (van Cittert-Zernike theorem, Eq. B19).
 
 import numpy as np
 
-from lifesimft.sources import point_source_visibility, uniform_disk_visibility
+from lifesimft.sources import (
+    exozodi_visibility,
+    point_source_visibility,
+    uniform_disk_visibility,
+)
 
 
 def pair_sum(
@@ -120,3 +124,47 @@ def local_zodi_photon_rate(
         * field_of_view_solid_angle(wavelength, aperture_diameter)
         * np.sum(amplitudes**2)
     )
+
+
+def exozodi_photon_rate(
+    zodi_level: float,
+    amplitudes: np.ndarray,
+    phases: np.ndarray,
+    baselines: np.ndarray,
+    wavelength: float,
+    bandwidth: float,
+    distance: float,
+    luminosity: float,
+    aperture_diameter: float,
+) -> np.ndarray:
+    """Photon rate from a face-on exozodi disk in one interferometer output.
+
+    n = bandwidth * sum_jk A_j A_k cos(phi_j - phi_k) I~_ez(|x_jk|)
+
+    The disk is radially symmetric, so I~_ez depends only on the baseline lengths,
+    which do not change under rotation: the rate is constant in time and is computed
+    from the first time step only.
+
+    :param zodi_level: number of zodis z, dimensionless
+    :param amplitudes: collector amplitude responses A_j in m, shape (n_collectors,)
+    :param phases: beam-combiner phase of each collector in rad, shape (n_collectors,)
+    :param baselines: x_jk in m, shape (n_t, n_collectors, n_collectors, 2)
+    :param wavelength: wavelength in m
+    :param bandwidth: width of the wavelength bin in m
+    :param distance: distance to the star in m
+    :param luminosity: stellar luminosity in solar luminosities
+    :param aperture_diameter: collector diameter in m, sets the field of view
+    :return: photon rate in ph s^-1, shape (n_t,), constant in time
+    """
+    lengths = np.linalg.norm(baselines[0], axis=-1)
+    max_angle = wavelength / (2 * aperture_diameter)
+    visibility = exozodi_visibility(
+        baseline_lengths=lengths,
+        wavelength=wavelength,
+        zodi_level=zodi_level,
+        distance=distance,
+        luminosity=luminosity,
+        max_angle=max_angle,
+    )
+    rate = bandwidth * pair_sum(amplitudes, phases, visibility[np.newaxis])
+    return np.full(baselines.shape[0], rate)
