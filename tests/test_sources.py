@@ -1,16 +1,21 @@
 import numpy as np
 import pytest
 from scipy.constants import au, c, h, k, sigma
+from scipy.integrate import quad
 
 from lifesimft import reference as ref
 from lifesimft.sources import (
     blackbody_flux_density,
     exozodi_radiance,
+    exozodi_visibility,
     local_zodi_radiance,
     planck_photon_radiance,
     point_source_visibility,
     uniform_disk_visibility,
 )
+
+HFOV_RAD = ref.WAVELENGTH_M / (2 * ref.APERTURE_DIAMETER_M)
+EXOZODI_ARGS = (ref.WAVELENGTH_M, 1.0, ref.DISTANCE_M, 1.0, HFOV_RAD)
 
 
 def test_planck_rayleigh_jeans_limit():
@@ -93,3 +98,32 @@ def test_on_axis_point_source_has_unit_visibility():
     baselines = np.array([[14.5, 0.0], [0.0, 87.0]])
     v = point_source_visibility(baselines, ref.WAVELENGTH_M, np.zeros(2))
     np.testing.assert_allclose(v, 1.0)
+
+
+def test_exozodi_visibility_at_zero_baseline_is_total_flux():
+    theta_min = (278.3 / 1500.0) ** 2 * au / ref.DISTANCE_M
+    total, _ = quad(
+        lambda t: exozodi_radiance(t, *EXOZODI_ARGS[:-1]) * 2 * np.pi * t,
+        theta_min,
+        HFOV_RAD,
+    )
+    assert exozodi_visibility(0.0, *EXOZODI_ARGS) == pytest.approx(total, rel=1e-4)
+
+
+def test_exozodi_is_partially_resolved_on_nulling_baseline():
+    v = exozodi_visibility(np.array([0.0, 14.5]), *EXOZODI_ARGS)
+    assert 0 < v[1] < v[0]
+
+
+def test_exozodi_visibility_scales_linearly_with_zodi_level():
+    lengths = np.array([0.0, 14.5, 87.0])
+    one = exozodi_visibility(lengths, *EXOZODI_ARGS)
+    three = exozodi_visibility(lengths, ref.WAVELENGTH_M, 3.0, *EXOZODI_ARGS[2:])
+    np.testing.assert_allclose(three, 3 * one)
+
+
+def test_exozodi_visibility_matches_inlifesim_with_kennedy_normalization():
+    inlifesim = np.array([4.8632491e7, 2.1179369e7])
+    kennedy_over_inlifesim = 0.034422617777777775**-0.34 * 7.12e-8 / 7.11889e-8
+    v = exozodi_visibility(np.array([0.0, 14.5]), *EXOZODI_ARGS)
+    np.testing.assert_allclose(v, kennedy_over_inlifesim * inlifesim, rtol=0.03)

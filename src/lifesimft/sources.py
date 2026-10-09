@@ -2,7 +2,7 @@
 
 import numpy as np
 from scipy.constants import au, c, h, k
-from scipy.special import j1
+from scipy.special import j0, j1
 
 
 def planck_photon_radiance(wavelength: float, temperature: float) -> float:
@@ -140,3 +140,38 @@ def exozodi_radiance(
     return np.where(
         inside, sigma * planck_photon_radiance(wavelength, temperature), 0.0
     )
+
+
+def exozodi_visibility(
+    baseline_lengths: np.ndarray,
+    wavelength: float,
+    zodi_level: float,
+    distance: float,
+    luminosity: float,
+    max_angle: float,
+    n_grid: int = 4000,
+) -> np.ndarray:
+    """Fourier transform of the face-on exozodi disk at the given baseline lengths.
+
+    I~(q) = integral I(theta) J0(2 pi q theta) 2 pi theta d theta,  q = |x_jk| / lambda
+
+    integrated with the trapezoidal rule from the sublimation radius to max_angle.
+    Not normalized: I~(0) is the total disk flux density inside max_angle.
+
+    :param baseline_lengths: |x_jk| in m, any shape
+    :param wavelength: in m
+    :param zodi_level: number of zodis z, dimensionless
+    :param distance: distance to the star in m
+    :param luminosity: stellar luminosity in solar luminosities
+    :param max_angle: outer integration limit in rad, e.g. the field of view lambda / 2D
+    :param n_grid: number of angular grid points
+    :return: photon flux density in ph s^-1 m^-2 m^-1, same shape as baseline_lengths
+    """
+    theta_min = (278.3 / 1500.0) ** 2 * np.sqrt(luminosity) * au / distance
+    theta = np.linspace(theta_min, max_angle, n_grid)
+    radiance = exozodi_radiance(theta, wavelength, zodi_level, distance, luminosity)
+    q = np.asarray(baseline_lengths) / wavelength
+    integrand = (
+        radiance * j0(2 * np.pi * q[..., np.newaxis] * theta) * 2 * np.pi * theta
+    )
+    return np.trapezoid(integrand, theta, axis=-1)

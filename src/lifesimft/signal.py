@@ -5,6 +5,7 @@ summed over collector pairs (van Cittert-Zernike theorem, Eq. B19).
 """
 
 import numpy as np
+
 from lifesimft.sources import point_source_visibility, uniform_disk_visibility
 
 
