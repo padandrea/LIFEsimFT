@@ -3,8 +3,12 @@ import pytest
 
 from lifesimft import reference as ref
 from lifesimft.geometry import baselines, rotate_positions, rotation_angles
-from lifesimft.signal import planet_photon_rate, star_photon_rate
-from lifesimft.sources import blackbody_flux_density
+from lifesimft.signal import (
+    local_zodi_photon_rate,
+    planet_photon_rate,
+    star_photon_rate,
+)
+from lifesimft.sources import blackbody_flux_density, local_zodi_radiance
 
 EARTH_AT_10_PC_RAD = 4.848e-7
 AMPLITUDES = np.ones(4)
@@ -117,3 +121,14 @@ def test_star_leakage_matches_small_disk_formula(positions):
     )
     n = star_rate(positions, ref.PHASE_LEFT_RAD, STAR_ANGULAR_RADIUS)
     assert n[0] == pytest.approx(expected, rel=1e-3)
+
+
+def test_local_zodi_rate_matches_inlifesim():
+    rate = local_zodi_photon_rate(
+        radiance=local_zodi_radiance(ref.WAVELENGTH_M, ref.ECLIPTIC_LATITUDE_RAD),
+        amplitudes=np.full(4, AMPLITUDE_REF),
+        wavelength=ref.WAVELENGTH_M,
+        aperture_diameter=ref.APERTURE_DIAMETER_M,
+        bandwidth=ref.BANDWIDTH_M,
+    )
+    assert rate == pytest.approx(10.061779016, rel=1e-4)

@@ -5,6 +5,7 @@ from scipy.constants import au, c, h, k, sigma
 from lifesimft import reference as ref
 from lifesimft.sources import (
     blackbody_flux_density,
+    local_zodi_radiance,
     planck_photon_radiance,
     uniform_disk_visibility,
 )
@@ -48,3 +49,12 @@ def test_visibility_first_null():
     length = first_zero_of_j1 * wavelength / (2 * np.pi * theta)
     v = uniform_disk_visibility(np.array([[length, 0.0]]), wavelength, theta)
     assert v[0] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_local_zodi_at_ecliptic_pole():
+    wavelength = ref.WAVELENGTH_M
+    spectrum = planck_photon_radiance(wavelength, 265.0) + 0.22 * (
+        0.00465047 / 1.5
+    ) ** 2 * planck_photon_radiance(wavelength, 5777.0)
+    expected = 4e-8 * spectrum * np.sqrt(2)
+    assert local_zodi_radiance(wavelength, np.pi / 2) == pytest.approx(expected)

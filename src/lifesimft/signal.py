@@ -1,8 +1,8 @@
 """Planet photon rate in an interferometer output, Dannert et al. (2025), Eq. B12, B13, and B14.
 
-   Each source's Fourier transform is evaluated at the baselines x_jk / lambda and
-   summed over collector pairs (van Cittert-Zernike theorem, Eq. B19).
-   """
+Each source's Fourier transform is evaluated at the baselines x_jk / lambda and
+summed over collector pairs (van Cittert-Zernike theorem, Eq. B19).
+"""
 
 import numpy as np
 from lifesimft.sources import uniform_disk_visibility
@@ -70,3 +70,41 @@ def star_photon_rate(
         amplitude_product * np.cos(delta_phase) * visibility, axis=(1, 2)
     )
     return bandwidth * flux_density * sum_over_pairs
+
+
+def field_of_view_solid_angle(wavelength: float, aperture_diameter: float) -> float:
+    """Solid angle of the single-mode field of view of one collector.
+
+    Omega = pi * (wavelength / (2 * aperture_diameter))^2
+
+    :param wavelength: wavelength in m
+    :param aperture_diameter: collector diameter in m
+    :return: solid angle in sr
+    """
+    return np.pi * (wavelength / (2 * aperture_diameter)) ** 2
+
+
+def local_zodi_photon_rate(
+    radiance: float,
+    amplitudes: np.ndarray,
+    wavelength: float,
+    aperture_diameter: float,
+    bandwidth: float,
+) -> float:
+    """Photon rate from the local zodiacal light in one interferometer output.
+
+    n = bandwidth * radiance * Omega * sum_j A_j^2
+
+    :param radiance: local-zodi spectral photon radiance in ph s^-1 m^-2 m^-1 sr^-1
+    :param amplitudes: collector amplitude responses A_j in m, shape (n_collectors,)
+    :param wavelength: wavelength in m
+    :param aperture_diameter: collector diameter in m
+    :param bandwidth: width of the wavelength bin in m
+    :return: photon rate in ph s^-1, constant in time
+    """
+    return (
+        bandwidth
+        * radiance
+        * field_of_view_solid_angle(wavelength, aperture_diameter)
+        * np.sum(amplitudes**2)
+    )
