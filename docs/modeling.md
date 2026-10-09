@@ -44,9 +44,8 @@ cos Δϑ_jk = 1). Noise will be photon noise only.
 
 - Radiance from the empirical model of Dannert et al. (2022), as implemented in
   InLIFEsim `create_localzodi`; agrees to 7·10⁻⁶.
-- Ecliptic coordinates λ_rel = 135°, β = 45° from Dannert et al. (2022) Table 1
-  (InLIFEsim demo: 0.79 rad). Dannert et al. (2025) Table 1 gives none; the value
-  behind its Table 2 is still to be confirmed.
+- Ecliptic coordinates λ_rel = 135°, β = 45° from Dannert et al. (2025) Table 1
+  ("star position"), identical to Dannert et al. (2022) Table 1.
 - Uniform over the single-mode field of view Ω = π(λ/2D)², so only the j = k terms
   of Eq. B19 survive: n = Δλ I Ω Σ_j A_j². Constant in time and equal in both
   outputs; cancels in n_L − n_R and enters T only as photon noise.
