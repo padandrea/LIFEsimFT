@@ -24,6 +24,7 @@ class PopulationEntry:
     star_name: str
     star: Star
     planet: Planet
+    incident_flux_searth: float | None = None
 
 
 def load_ppop(path: str | Path) -> list[PopulationEntry]:
@@ -78,6 +79,7 @@ def load_ppop(path: str | Path) -> list[PopulationEntry]:
                     star_name=row["name"],
                     star=star,
                     planet=planet,
+                    incident_flux_searth=(float(row["Fp"]) if row.get("Fp") else None),
                 )
             )
 

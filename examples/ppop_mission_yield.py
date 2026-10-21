@@ -12,14 +12,14 @@ from lifesimft.mission_yield import (
 from lifesimft.optimization import greedy_optimize
 from lifesimft.population import load_ppop
 
-N_UNIVERSES = 10
+N_UNIVERSES = 100
 N_TARGETS = 10
 TIME_PER_STAR_H_GRID = (1.0, 2.0, 5.0, 10.0, 20.0)
 SNR_THRESHOLD = 5.0
 
 
 def main():
-    catalog = Path.home() / "Developer/P-pop/TestPlanetPopulation.txt"
+    catalog = Path.home() / "Developer/P-pop/YieldPopulation100.txt"
 
     population = load_ppop(catalog)
 
