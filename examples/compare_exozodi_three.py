@@ -8,25 +8,21 @@ Run from the LIFEsimFT repository root:
     python examples/compare_exozodi_three.py
 """
 
-from pathlib import Path
 import inspect
-
-import matplotlib.pyplot as plt
-import numpy as np
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Import the three actual projects directly
 # ---------------------------------------------------------------------------
-
 import lifesim
-
+import matplotlib.pyplot as plt
+import numpy as np
 from inlifesim.sources import create_exozodi
 
 from lifesimft import reference as ref
 from lifesimft.geometry import baselines, rotate_positions
 from lifesimft.signal import exozodi_photon_rate
 from lifesimft.spectral import wavelength_bins
-
 
 # ---------------------------------------------------------------------------
 # Confirm which source files are actually being executed
@@ -70,6 +66,7 @@ COLORS = {
 # InLIFEsim
 # ---------------------------------------------------------------------------
 
+
 def inlifesim_baselines() -> np.ndarray:
     """Baseline matrix in InLIFEsim layout."""
 
@@ -94,22 +91,11 @@ def inlifesim_exozodi_rates(
 
     hfov = wl_bins / (2.0 * ref.APERTURE_DIAMETER_M)
 
-    hfov_mas = (
-        hfov
-        * 3600000.0
-        * 180.0
-        / np.pi
-    )
+    hfov_mas = hfov * 3600000.0 * 180.0 / np.pi
 
     rad_pix = 2.0 * hfov / IMAGE_SIZE
 
-    au_pix = (
-        2.0
-        * hfov_mas
-        / IMAGE_SIZE
-        / 1e3
-        * DISTANCE_PC
-    )
+    au_pix = 2.0 * hfov_mas / IMAGE_SIZE / 1e3 * DISTANCE_PC
 
     x_map = np.tile(
         np.arange(IMAGE_SIZE),
@@ -121,10 +107,7 @@ def inlifesim_exozodi_rates(
         x_map.T - (IMAGE_SIZE - 1) / 2.0,
     )
 
-    r_au = (
-        radius_map[np.newaxis]
-        * au_pix[:, np.newaxis, np.newaxis]
-    )
+    r_au = radius_map[np.newaxis] * au_pix[:, np.newaxis, np.newaxis]
 
     # ---------------------------------------------------------------
     # ACTUAL InLIFEsim call
@@ -147,16 +130,9 @@ def inlifesim_exozodi_rates(
     # Convert InLIFEsim's Fourier matrix into photon rate in one dark output
     phi = ref.PHASE_LEFT_RAD
 
-    delta = np.cos(
-        phi[:, np.newaxis]
-        - phi[np.newaxis, :]
-    )
+    delta = np.cos(phi[:, np.newaxis] - phi[np.newaxis, :])
 
-    weights = (
-        AMPLITUDES[:, np.newaxis]
-        * AMPLITUDES[np.newaxis, :]
-        * delta
-    )
+    weights = AMPLITUDES[:, np.newaxis] * AMPLITUDES[np.newaxis, :] * delta
 
     return np.sum(
         weights * b_ez,
@@ -167,6 +143,7 @@ def inlifesim_exozodi_rates(
 # ---------------------------------------------------------------------------
 # LIFEsimFT
 # ---------------------------------------------------------------------------
+
 
 def lifesimft_exozodi_rates(
     wl_bins: np.ndarray,
@@ -212,6 +189,7 @@ def lifesimft_exozodi_rates(
 # LIFEsim
 # ---------------------------------------------------------------------------
 
+
 def lifesim_exozodi_rates(
     wl_bins: np.ndarray,
     wl_widths: np.ndarray,
@@ -250,40 +228,21 @@ def lifesim_exozodi_rates(
 
     diameter = ref.APERTURE_DIAMETER_M
 
-    bus.data.inst["hfov"] = (
-        wl_bins / (2.0 * diameter)
-    )
+    bus.data.inst["hfov"] = wl_bins / (2.0 * diameter)
 
-    bus.data.inst["hfov_mas"] = (
-        bus.data.inst["hfov"]
-        * 3600000.0
-        * 180.0
-        / np.pi
-    )
+    bus.data.inst["hfov_mas"] = bus.data.inst["hfov"] * 3600000.0 * 180.0 / np.pi
 
-    bus.data.inst["rad_pix"] = (
-        2.0
-        * bus.data.inst["hfov"]
-        / IMAGE_SIZE
-    )
+    bus.data.inst["rad_pix"] = 2.0 * bus.data.inst["hfov"] / IMAGE_SIZE
 
-    bus.data.inst["mas_pix"] = (
-        2.0
-        * bus.data.inst["hfov_mas"]
-        / IMAGE_SIZE
-    )
+    bus.data.inst["mas_pix"] = 2.0 * bus.data.inst["hfov_mas"] / IMAGE_SIZE
 
-    bus.data.single["l_sun"] = (
-        ref.STAR_LUMINOSITY_LSUN
-    )
+    bus.data.single["l_sun"] = ref.STAR_LUMINOSITY_LSUN
 
     bus.data.single["distance_s"] = DISTANCE_PC
     bus.data.single["z"] = ref.ZODI_LEVEL
 
     # Actual LIFEsim transmission map
-    _, _, tm3, _, _ = transmission.transmission_map(
-        map_selection=["tm3"]
-    )
+    _, _, tm3, _, _ = transmission.transmission_map(map_selection=["tm3"])
 
     bus.data.inst["t_map"] = tm3
 
@@ -296,15 +255,13 @@ def lifesim_exozodi_rates(
     # LIFEsim applies this efficiency later in Instrument.get_snr().
     # Apply it here because LIFEsimFT/InLIFEsim amplitudes already contain
     # the same 0.7 * 0.05 = 0.035 photon conversion efficiency.
-    return (
-        np.asarray(exozodi_raw)
-        * bus.data.inst["eff_tot"]
-    )
+    return np.asarray(exozodi_raw) * bus.data.inst["eff_tot"]
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
 
@@ -339,23 +296,15 @@ def main() -> None:
     # Ratios
     # ---------------------------------------------------------------
 
-    ratio_ft_life = (
-        exozodi_ft / exozodi_life
-    )
+    ratio_ft_life = exozodi_ft / exozodi_life
 
-    ratio_inlife_life = (
-        exozodi_inlife / exozodi_life
-    )
+    ratio_inlife_life = exozodi_inlife / exozodi_life
 
     print()
     print("Exozodi comparison")
     print("-------------------")
 
-    print(
-        "LIFEsimFT / LIFEsim:"
-        f" {ratio_ft_life.min():.4f}"
-        f" – {ratio_ft_life.max():.4f}"
-    )
+    print(f"LIFEsimFT / LIFEsim: {ratio_ft_life.min():.4f} – {ratio_ft_life.max():.4f}")
 
     print(
         "InLIFEsim / LIFEsim:"
@@ -408,13 +357,9 @@ def main() -> None:
 
     ax.set_yscale("log")
 
-    ax.set_ylabel(
-        "Exozodi photon rate per output [ph s$^{-1}$]"
-    )
+    ax.set_ylabel("Exozodi photon rate per output [ph s$^{-1}$]")
 
-    ax.set_title(
-        "Exozodiacal-light comparison"
-    )
+    ax.set_title("Exozodiacal-light comparison")
 
     ax.legend()
     ax.grid(alpha=0.25)
@@ -443,30 +388,20 @@ def main() -> None:
         label="LIFEsim",
     )
 
-    ax_ratio.set_xlabel(
-        "Wavelength [µm]"
-    )
+    ax_ratio.set_xlabel("Wavelength [µm]")
 
-    ax_ratio.set_ylabel(
-        "Ratio to LIFEsim"
-    )
+    ax_ratio.set_ylabel("Ratio to LIFEsim")
 
     ax_ratio.grid(alpha=0.25)
     ax_ratio.legend(fontsize=9)
 
     fig.tight_layout()
 
-    output_dir = (
-        Path(__file__).resolve().parent.parent
-        / "outputs"
-    )
+    output_dir = Path(__file__).resolve().parent.parent / "outputs"
 
     output_dir.mkdir(exist_ok=True)
 
-    output_path = (
-        output_dir
-        / "exozodi_three_code_comparison.png"
-    )
+    output_path = output_dir / "exozodi_three_code_comparison.png"
 
     fig.savefig(
         output_path,
