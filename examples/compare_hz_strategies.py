@@ -9,11 +9,11 @@ from benchmark_detection_workers import compute
 from scipy.stats import binomtest
 
 from lifesimft.constants import R_EARTH_M
+from lifesimft.experiment_io import load_or_compute_times, save_experiment
 from lifesimft.habitable_zone import in_conservative_hz
 from lifesimft.mission_yield import PlanetDetectionTime, evaluate_fixed_allocation
 from lifesimft.optimization import greedy_optimize
 from lifesimft.population import load_ppop
-from lifesimft.experiment_io import load_or_compute_times, save_experiment
 
 
 def main():
