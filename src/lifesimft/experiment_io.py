@@ -24,7 +24,14 @@ def cache_fingerprint(catalog: Path, candidates: list, root: Path) -> str:
     """Hash population, filtered planets, and detector/physics implementation."""
     digest = hashlib.sha256(b"LIFEsimFT-detection-cache-v1\n")
     digest.update(sha256_file(catalog).encode())
-    source_files = sorted((root / "src" / "lifesimft").rglob("*.py"))
+    # Only detection/selection code affects the threshold cache. Changes to
+    # result serialization and greedy scheduling must not invalidate expensive
+    # planet detection-time calculations.
+    excluded = {"experiment_io.py", "mission_yield.py", "optimization.py"}
+    source_files = sorted(
+        path for path in (root / "src" / "lifesimft").rglob("*.py")
+        if path.name not in excluded
+    )
     source_files.append(root / "examples" / "benchmark_detection_workers.py")
     for path in source_files:
         digest.update(str(path.relative_to(root)).encode())
@@ -127,6 +134,13 @@ def paired_statistics(e_counts, p_counts, *, seed: int) -> dict:
     }
 
 
+def _json_numpy_scalar(value):
+    """Convert NumPy scalar values without silently coercing arrays."""
+    if isinstance(value, np.generic):
+        return value.item()
+    raise TypeError(f"Not JSON serializable: {type(value).__name__}")
+
+
 def save_experiment(
     *,
     output_dir: Path,
@@ -215,7 +229,7 @@ def save_experiment(
     }
     temp = output_dir / "summary.json.tmp"
     try:
-        temp.write_text(json.dumps(summary, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+        temp.write_text(json.dumps(summary, indent=2, allow_nan=False, default=_json_numpy_scalar) + "\n", encoding="utf-8")
         temp.replace(output_dir / "summary.json")
     finally:
         temp.unlink(missing_ok=True)
