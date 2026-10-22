@@ -24,14 +24,7 @@ def cache_fingerprint(catalog: Path, candidates: list, root: Path) -> str:
     """Hash population, filtered planets, and detector/physics implementation."""
     digest = hashlib.sha256(b"LIFEsimFT-detection-cache-v1\n")
     digest.update(sha256_file(catalog).encode())
-    # Only detection/selection code affects the threshold cache. Changes to
-    # result serialization and greedy scheduling must not invalidate expensive
-    # planet detection-time calculations.
-    excluded = {"experiment_io.py", "mission_yield.py", "optimization.py"}
-    source_files = sorted(
-        path for path in (root / "src" / "lifesimft").rglob("*.py")
-        if path.name not in excluded
-    )
+    source_files = sorted((root / "src" / "lifesimft").rglob("*.py"))
     source_files.append(root / "examples" / "benchmark_detection_workers.py")
     for path in source_files:
         digest.update(str(path.relative_to(root)).encode())
