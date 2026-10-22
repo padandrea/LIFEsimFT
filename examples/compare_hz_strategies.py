@@ -13,6 +13,7 @@ from lifesimft.habitable_zone import in_conservative_hz
 from lifesimft.mission_yield import PlanetDetectionTime, evaluate_fixed_allocation
 from lifesimft.optimization import greedy_optimize
 from lifesimft.population import load_ppop
+from lifesimft.experiment_io import load_or_compute_times, save_experiment
 
 
 def main():
@@ -26,6 +27,10 @@ def main():
     parser.add_argument("--train-universes", type=int, default=None)
     parser.add_argument("--budget-hours", type=float, default=50.0)
     parser.add_argument("--workers", type=int, default=18)
+    parser.add_argument("--output-dir", type=Path, default=None)
+    parser.add_argument("--cache-dir", type=Path, default=None)
+    parser.add_argument("--cache-only", action="store_true")
+    parser.add_argument("--recompute-detection-times", action="store_true")
     args = parser.parse_args()
 
     population = load_ppop(args.catalog)
@@ -59,8 +64,20 @@ def main():
     print(f"Training universes: {len(train_ids)}")
     print(f"Evaluation universes: {len(test_ids)}")
 
+    root = Path(__file__).resolve().parents[1]
+    cache_dir = args.cache_dir or (root / "outputs/detection_time_cache")
+    output_dir = args.output_dir or (
+        root / "outputs/experiments"
+        / f"{args.catalog.stem}_{n_train}train_{args.budget_hours:g}h"
+    )
+    if output_dir.exists() and any(output_dir.iterdir()):
+        parser.error(f"Output directory already contains files: {output_dir}")
+
     start = perf_counter()
-    times = compute(candidates, args.workers, chunksize=8)
+    times, cache_path, cache_hit = load_or_compute_times(
+        candidates, args.catalog, root, cache_dir, args.workers, compute,
+        recompute=args.recompute_detection_times, cache_only=args.cache_only,
+    )
 
     records = [
         PlanetDetectionTime(entry.universe_id, entry.star_id, time_s)
@@ -230,6 +247,21 @@ def main():
 
         delta_p_test = p_test.probability_at_least_one - e_test.probability_at_least_one
         print(f"Evaluation P advantage: {100 * delta_p_test:+.2f} pp")
+
+    save_experiment(
+        output_dir=output_dir,
+        catalog=args.catalog,
+        cache_path=cache_path,
+        cache_hit=cache_hit,
+        universe_count=args.universes,
+        n_train=n_train,
+        budget_hours=args.budget_hours,
+        candidates_count=len(candidates),
+        star_ids=star_ids,
+        star_names=star_names,
+        strategies=strategies,
+        evaluations={"E": e_test, "P": p_test} if len(test_ids) else None,
+    )
 
 
 if __name__ == "__main__":
