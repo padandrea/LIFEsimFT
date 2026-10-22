@@ -127,3 +127,10 @@ def test_numpy_scalars_are_json_serializable(tmp_path):
     summary = json.loads((tmp_path / "out/summary.json").read_text())
     assert summary["training"]["E"]["selected_stars"] == 1
     assert summary["training"]["E"]["used_time_hours"] == 1.0
+    import csv
+
+    with (tmp_path / "out/allocations.csv").open(newline="") as stream:
+        allocations = list(csv.DictReader(stream))
+    assert float(allocations[0]["E_time_s"]) == 3600.0
+    assert float(allocations[0]["P_time_h"]) == 1.0
+
