@@ -80,3 +80,50 @@ def test_paired_statistics():
     assert result["p_minus_e"] == pytest.approx(0.0)
     assert result["mcnemar_exact_p"] == pytest.approx(1.0)
     assert len(result["bootstrap_95_interval"]) == 2
+
+def test_numpy_scalars_are_json_serializable(tmp_path):
+    from dataclasses import dataclass
+
+    from lifesimft.experiment_io import save_experiment
+
+    @dataclass
+    class Yield:
+        universe_ids: tuple
+        detections_per_universe: tuple
+        expected_detections: float
+        probability_at_least_one: float
+
+    @dataclass
+    class Result:
+        allocation_s: dict
+        used_time_s: float
+        mission_yield: Yield
+
+    catalog = tmp_path / "catalog.txt"
+    catalog.write_text("catalog")
+    cached = tmp_path / "cached.npz"
+    cached.write_bytes(b"test")
+    y = Yield((0, 1), (1, 0), 0.5, 0.5)
+    results = {
+        key: Result({0: np.float64(3600.0), 1: np.float64(0.0)},
+                    np.float64(3600.0), y)
+        for key in ("E", "P")
+    }
+    save_experiment(
+        output_dir=tmp_path / "out",
+        catalog=catalog,
+        cache_path=cached,
+        cache_hit=False,
+        universe_count=2,
+        n_train=2,
+        budget_hours=1.0,
+        candidates_count=2,
+        star_ids=[0, 1],
+        star_names={0: "A", 1: "B"},
+        strategies=results,
+    )
+    import json
+
+    summary = json.loads((tmp_path / "out/summary.json").read_text())
+    assert summary["training"]["E"]["selected_stars"] == 1
+    assert summary["training"]["E"]["used_time_hours"] == 1.0
