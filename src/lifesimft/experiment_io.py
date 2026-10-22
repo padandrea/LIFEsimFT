@@ -164,7 +164,7 @@ def save_experiment(
         for star in sorted(star_ids):
             e = strategies["E"].allocation_s[star]
             p = strategies["P"].allocation_s[star]
-            writer.writerow([star, star_names[star], repr(e), repr(p), repr(e / 3600), repr(p / 3600)])
+            writer.writerow([star, star_names[star], float(e), float(p), float(e / 3600), float(p / 3600)])
 
     paired = {}
     with (output_dir / "per_universe.csv").open(
